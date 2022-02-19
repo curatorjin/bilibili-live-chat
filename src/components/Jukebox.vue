@@ -101,25 +101,24 @@ export default {
             })
             .then(async function (res) {
               if (res.status === 200) {
-                for (let song of res.data['result']['songs']) {
+                for (let song of res.data.result.songs) {
                   let find = false;
                   try {
                     let songUrl = 'https://music.163.com/song/media/outer/url?id=' + song.id + '.mp3';
                     await axios.get(songUrl).then(function (songRes) {
-                      console.log(songRes.headers);
                       if (songRes.headers['content-type'] === 'audio/mpeg') {
                         if (data.isIdle) {
                           data.isIdle = false;
                           idlePlayer.value.pause();
                           data.playingName = song.name;
-                          data.playingArtist = song['artists'][0]['name'];
+                          data.playingArtist = song.artists[0].name;
                           player.value.src = songUrl;
                           player.value.play();
                         } else {
                           playList.value.push({
                             name: song.name,
                             url: songUrl,
-                            artist: song['artists'][0]['name'],
+                            artist: song.artists[0].name,
                           });
                         }
                         find = true;
