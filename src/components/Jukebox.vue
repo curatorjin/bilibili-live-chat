@@ -96,6 +96,7 @@ export default {
           axios
             .post('http://xmsj.org/', qs.stringify({ input: songName, type: 'netease', filter: 'name' }), {
               headers: {
+                'Content-Security-Policy': 'upgrade-insecure-requests',
                 'Content-Type': 'application/x-www-form-urlencoded',
                 Accept: 'application/json',
                 'X-Requested-with': 'XMLHttpRequest',
@@ -107,7 +108,9 @@ export default {
                   let find = false;
                   try {
                     await axios
-                      .get('http://music.163.com/song/media/outer/url?id=' + song.songid + '.mp3')
+                      .get('http://music.163.com/song/media/outer/url?id=' + song.songid + '.mp3', {
+                        headers: { 'Content-Security-Policy': 'upgrade-insecure-requests' },
+                      })
                       .then(function (songRes) {
                         console.log(songRes.headers);
                         if (songRes.headers['content-type'] === 'audio/mpeg') {
