@@ -37,7 +37,6 @@ import { ref, toRefs, reactive, nextTick } from 'vue';
 import { propsType } from '@/utils/props';
 import { formatTime } from '@/utils/timeFormat';
 import axios from 'axios';
-import qs from 'qs';
 
 export default {
   props: propsType,
@@ -45,7 +44,7 @@ export default {
     const player = ref(null);
     const idlePlayer = ref(null);
     const playList = ref([]);
-    const orderList = ['Killer', '卡农'];
+    const orderList = [];
     const data = reactive({
       running: false,
       isIdle: true,
@@ -94,7 +93,7 @@ export default {
         if (length > 0) {
           let songName = orderList.shift();
           axios
-            .post('https://music.163.com/api/search/pc', qs.stringify({ s: songName, offset: 0, limit: 20, type: 1 }), {
+            .get('https://music.163.com/api/search/get/web?s=' + songName + '&limit=20&type=1&offset=0', {
               headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
               },
