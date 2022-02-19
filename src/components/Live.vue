@@ -1,5 +1,6 @@
 <template>
   <div id="live">
+    <jukebox ref="jukebox" v-bind="props" />
     <danmaku-list
       ref="giftPinList"
       v-bind="props"
@@ -18,13 +19,15 @@ import { setFace } from '@/utils/face';
 import { KeepLiveWS } from 'bilibili-live-ws';
 
 import DanmakuList from '@/components/DanmakuList';
+import Jukebox from '@/components/Jukebox';
 
 export default {
-  components: { DanmakuList },
+  components: { Jukebox, DanmakuList },
   props: propsType,
   setup(props) {
     const giftPinList = ref(null);
     const danmakuList = ref(null);
+    const jukebox = ref(null);
 
     const giftCombMap = new Map();
     const giftShowFace = computed(() => !['false', 'gift'].includes(props.face));
@@ -39,6 +42,10 @@ export default {
     const addDanmaku = danmaku => {
       if (props.limit) danmakuList.value.addSpeedLimitDanmaku(danmaku);
       else danmakuList.value.addDanmaku(danmaku);
+      let message = danmaku.message;
+      if (jukebox.value.running && message.startsWith('点歌 ')) {
+        jukebox.value.orderSong(message.substr(3));
+      }
     };
 
     onMounted(() => {
@@ -149,7 +156,7 @@ export default {
       });
     });
 
-    return { props, giftShowFace, giftPinList, danmakuList };
+    return { props, giftShowFace, giftPinList, danmakuList, jukebox };
   },
 };
 </script>
