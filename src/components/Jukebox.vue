@@ -94,7 +94,7 @@ export default {
         if (length > 0) {
           let songName = orderList.shift();
           axios
-            .post('/searchMusic', qs.stringify({ input: songName, type: 'netease', filter: 'name' }), {
+            .post('http://xmsj.org/', qs.stringify({ input: songName, type: 'netease', filter: 'name' }), {
               headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 Accept: 'application/json',
@@ -106,26 +106,28 @@ export default {
                 for (let song of res.data.data) {
                   let find = false;
                   try {
-                    await axios.get('/song?id=' + song.songid + '.mp3').then(function (songRes) {
-                      console.log(songRes.headers);
-                      if (songRes.headers['content-type'] === 'audio/mpeg') {
-                        if (data.isIdle) {
-                          data.isIdle = false;
-                          idlePlayer.value.pause();
-                          data.playingName = song.title;
-                          data.playingAuthor = song.author;
-                          player.value.src = song.url;
-                          player.value.play();
-                        } else {
-                          playList.value.push({
-                            title: song.title,
-                            url: song.url,
-                            author: song.author,
-                          });
+                    await axios
+                      .get('http://music.163.com/song/media/outer/url?id=' + song.songid + '.mp3')
+                      .then(function (songRes) {
+                        console.log(songRes.headers);
+                        if (songRes.headers['content-type'] === 'audio/mpeg') {
+                          if (data.isIdle) {
+                            data.isIdle = false;
+                            idlePlayer.value.pause();
+                            data.playingName = song.title;
+                            data.playingAuthor = song.author;
+                            player.value.src = song.url;
+                            player.value.play();
+                          } else {
+                            playList.value.push({
+                              title: song.title,
+                              url: song.url,
+                              author: song.author,
+                            });
+                          }
+                          find = true;
                         }
-                        find = true;
-                      }
-                    });
+                      });
                     if (find) {
                       break;
                     }

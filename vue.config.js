@@ -33,26 +33,4 @@ module.exports = {
       },
     });
   },
-  devServer: {
-    proxy: {
-      '/searchMusic': {
-        target: 'http://xmsj.org/',
-        changeOrigin: true,
-        ws: true,
-        pathRewrite: {
-          //路径重置
-          '^/searchMusic': '',
-        },
-      },
-      '/song': {
-        target: 'http://music.163.com/song/media/outer/url',
-        changeOrigin: true,
-        ws: true,
-        pathRewrite: {
-          //路径重置
-          '^/song': '',
-        },
-      },
-    },
-  },
 };
