@@ -11,15 +11,15 @@
             <span class="jukebox-info">正在播放: </span>
             <span class="jukebox-time">{{ played }}/{{ totalDuration }}</span>
           </div>
-          <div class="jukebox-info">{{ playingName }} —— {{ playingAuthor }}</div>
+          <div class="jukebox-info">{{ playingName }} —— {{ playingArtist }}</div>
         </div>
         <div v-if="playList.length > 0">
           <div class="jukebox-info">播放列表：【{{ playList.length }}】</div>
           <div class="jukebox-item">
             <ul>
               <li class="jukebox-song" v-for="(song, index) in playList.slice(0, 3)" :key="index">
-                <span>{{ song.title }}</span> ——
-                <span>{{ song.author }}</span>
+                <span>{{ song.name }}</span> ——
+                <span>{{ song.artist }}</span>
               </li>
             </ul>
           </div>
@@ -52,7 +52,7 @@ export default {
       played: '',
       totalDuration: '',
       playingName: '',
-      playingAuthor: '',
+      playingArtist: '',
     });
     // 点歌
     const orderSong = async songName => {
@@ -76,8 +76,8 @@ export default {
       if (playList.value.length > 0) {
         const song = playList.value.shift();
         player.value.src = song.url;
-        data.playingName = song.title;
-        data.playingAuthor = song.author;
+        data.playingName = song.name;
+        data.playingArtist = song.artist;
         idlePlayer.value.pause();
         player.value.play();
         data.isIdle = false;
@@ -94,43 +94,37 @@ export default {
         if (length > 0) {
           let songName = orderList.shift();
           axios
-            .post('http://xmsj.org/', qs.stringify({ input: songName, type: 'netease', filter: 'name' }), {
+            .post('https://music.163.com/api/search/pc', qs.stringify({ s: songName, offset: 0, limit: 20, type: 1 }), {
               headers: {
-                'Content-Security-Policy': 'upgrade-insecure-requests',
                 'Content-Type': 'application/x-www-form-urlencoded',
-                Accept: 'application/json',
-                'X-Requested-with': 'XMLHttpRequest',
               },
             })
             .then(async function (res) {
               if (res.status === 200) {
-                for (let song of res.data.data) {
+                for (let song of res.data['result']['songs']) {
                   let find = false;
                   try {
-                    await axios
-                      .get('http://music.163.com/song/media/outer/url?id=' + song.songid + '.mp3', {
-                        headers: { 'Content-Security-Policy': 'upgrade-insecure-requests' },
-                      })
-                      .then(function (songRes) {
-                        console.log(songRes.headers);
-                        if (songRes.headers['content-type'] === 'audio/mpeg') {
-                          if (data.isIdle) {
-                            data.isIdle = false;
-                            idlePlayer.value.pause();
-                            data.playingName = song.title;
-                            data.playingAuthor = song.author;
-                            player.value.src = song.url;
-                            player.value.play();
-                          } else {
-                            playList.value.push({
-                              title: song.title,
-                              url: song.url,
-                              author: song.author,
-                            });
-                          }
-                          find = true;
+                    let songUrl = 'https://music.163.com/song/media/outer/url?id=' + song.id + '.mp3';
+                    await axios.get(songUrl).then(function (songRes) {
+                      console.log(songRes.headers);
+                      if (songRes.headers['content-type'] === 'audio/mpeg') {
+                        if (data.isIdle) {
+                          data.isIdle = false;
+                          idlePlayer.value.pause();
+                          data.playingName = song.name;
+                          data.playingArtist = song['artists'][0]['name'];
+                          player.value.src = songUrl;
+                          player.value.play();
+                        } else {
+                          playList.value.push({
+                            name: song.name,
+                            url: songUrl,
+                            artist: song['artists'][0]['name'],
+                          });
                         }
-                      });
+                        find = true;
+                      }
+                    });
                     if (find) {
                       break;
                     }
