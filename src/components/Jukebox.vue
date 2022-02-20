@@ -4,22 +4,25 @@
       <audio ref="idlePlayer" loop src="http://music.163.com/song/media/outer/url?id=478507889.mp3" />
       <audio ref="player" src="" @ended="audioEnded" @timeupdate="updatePlayer" />
       <div class="jukebox-item">
-        <div class="jukebox-info">输入"点歌" + 歌名进行点歌</div>
+        <div class="jukebox-info">
+          <span class="jukebox-info">输入"点歌" + 歌名进行点歌</span>
+          <span class="jukebox-info"><button @click="nextSong">切歌</button></span>
+        </div>
         <div class="jukebox-info" v-if="isIdle">当前点歌列表为空</div>
         <div class="jukebox-info" v-else>
           <div>
             <span class="jukebox-info">正在播放: </span>
             <span class="jukebox-time">{{ played }}/{{ totalDuration }}</span>
           </div>
-          <div class="jukebox-info">{{ playingName }} —— {{ playingArtist }}</div>
+          <div class="jukebox-info">{{ playingName }} —— {{ playingAuthor }}</div>
         </div>
         <div v-if="playList.length > 0">
           <div class="jukebox-info">播放列表：【{{ playList.length }}】</div>
           <div class="jukebox-item">
             <ul>
               <li class="jukebox-song" v-for="(song, index) in playList.slice(0, 3)" :key="index">
-                <span>{{ song.name }}</span> ——
-                <span>{{ song.artist }}</span>
+                <span>{{ song.title }}</span> ——
+                <span>{{ song.author }}</span>
               </li>
             </ul>
           </div>
@@ -37,6 +40,7 @@ import { ref, toRefs, reactive, nextTick } from 'vue';
 import { propsType } from '@/utils/props';
 import { formatTime } from '@/utils/timeFormat';
 import axios from 'axios';
+import qs from 'qs';
 
 export default {
   props: propsType,
@@ -51,7 +55,7 @@ export default {
       played: '',
       totalDuration: '',
       playingName: '',
-      playingArtist: '',
+      playingAuthor: '',
     });
     // 点歌
     const orderSong = async songName => {
@@ -69,14 +73,17 @@ export default {
       data.played = formatTime(player.value.currentTime);
       data.totalDuration = formatTime(player.value.duration);
     };
+    const nextSong = () => {
+      player.value.currentTime = player.value.duration;
+    };
     // 闲时BGM
     const audioEnded = () => {
       console.log('play ended');
       if (playList.value.length > 0) {
         const song = playList.value.shift();
         player.value.src = song.url;
-        data.playingName = song.name;
-        data.playingArtist = song.artist;
+        data.playingName = song.title;
+        data.playingAuthor = song.author;
         idlePlayer.value.pause();
         player.value.play();
         data.isIdle = false;
@@ -92,32 +99,43 @@ export default {
         const { length } = orderList;
         if (length > 0) {
           let songName = orderList.shift();
+          let author = '';
+          if (songName.indexOf('-') !== -1) {
+            author = songName.split('-')[1];
+            songName = songName.split('-')[0];
+          }
           axios
-            .get('https://music.163.com/api/search/get/web?s=' + songName + '&limit=20&type=1&offset=0', {
+            .post('http://xmsj.org/', qs.stringify({ input: songName, type: 'netease', filter: 'name' }), {
               headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
+                Accept: 'application/json',
+                'X-Requested-with': 'XMLHttpRequest',
               },
             })
             .then(async function (res) {
               if (res.status === 200) {
-                for (let song of res.data.result.songs) {
+                for (let song of res.data.data) {
                   let find = false;
+                  if (song.author.indexOf(author) < 0) {
+                    console.log('not this author skip~');
+                    continue;
+                  }
                   try {
-                    let songUrl = 'https://music.163.com/song/media/outer/url?id=' + song.id + '.mp3';
+                    let songUrl = 'https://music.163.com/song/media/outer/url?id=' + song.songid + '.mp3';
                     await axios.get(songUrl).then(function (songRes) {
-                      if (songRes.headers['content-type'] === 'audio/mpeg') {
+                      if (songRes.headers['content-type'].indexOf('audio/mpeg') !== -1) {
                         if (data.isIdle) {
                           data.isIdle = false;
                           idlePlayer.value.pause();
-                          data.playingName = song.name;
-                          data.playingArtist = song.artists[0].name;
-                          player.value.src = songUrl;
+                          data.playingName = song.title;
+                          data.playingAuthor = song.author;
+                          player.value.src = song.url;
                           player.value.play();
                         } else {
                           playList.value.push({
-                            name: song.name,
+                            title: song.title,
                             url: songUrl,
-                            artist: song.artists[0].name,
+                            author: song.author,
                           });
                         }
                         find = true;
@@ -142,6 +160,7 @@ export default {
       idlePlayer,
       player,
       playList,
+      nextSong,
       startJukebox,
       updatePlayer,
       audioEnded,
